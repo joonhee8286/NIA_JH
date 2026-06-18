@@ -310,7 +310,6 @@ export default function App() {
   const handleSendMessage = async (queryText: string) => {
     if (!queryText.trim()) return;
 
-    // Check if system state is active
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -321,13 +320,65 @@ export default function App() {
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     };
 
-    // Append user message immediately
+    setInputMessage("");
+
     const updatedMessages = [...activeSession.messages, userMsg];
-    const sessionToUpdate = activeSession;
     
-    // Automatically title starting chat dynamically based on query if it was default name
-    let updatedTitle = sessionToUpdate.title;
-    if (sessionToUpdate.title.includes("새로운 법률 상담") || sessionToUpdate.title.includes("첫 국가�  return (
+    let updatedTitle = activeSession.title;
+    if (activeSession.title.includes("새로운 법률 상담") || activeSession.title.includes("첫 국가법령")) {
+      updatedTitle = queryText.length > 15 ? queryText.substring(0, 15) + "..." : queryText;
+    }
+
+    setSessions(
+      sessions.map((s) =>
+        s.id === activeSessionId
+          ? { ...s, title: updatedTitle, messages: updatedMessages }
+          : s
+      )
+    );
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messages: activeSession.messages,
+          query: queryText
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const modelMsg: Message = {
+          id: `msg-model-${Date.now()}`,
+          role: "model",
+          content: data.response,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          sources: data.sources
+        };
+
+        setSessions(
+          sessions.map((s) =>
+            s.id === activeSessionId
+              ? { ...s, title: updatedTitle, messages: [...updatedMessages, modelMsg] }
+              : s
+          )
+        );
+      } else {
+        setErrorMessage(data.error || "답변을 가져오는 중 오류가 발생했습니다.");
+      }
+    } catch (err: any) {
+      console.error("Error sending message:", err);
+      setErrorMessage("서버와 통신하는 중 오류가 발생했습니다. 네트워크 연결을 확인하고 다시 시도해 주세요.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
     <div className="min-h-screen bg-[#0f172a] text-slate-200 flex flex-col md:flex-row font-sans overflow-hidden">
       
       {/* MOBILE HEADER BAR */}
@@ -354,42 +405,6 @@ export default function App() {
             <Menu className="h-4 w-4" />
           </button>
         </div>
-      </div>
-
-      {/* SIDEBAR CONTAINER (DESKTOP & MOBILE SIDE DRAWER) */}
-      <div
-        className={`fixed top-0 bottom-0 left-0 z-40 w-72 bg-[#1e293b] border-r border-slate-700/50 flex flex-col transform md:transform-none md:static transition-transform duration-300 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        {/* Sidebar Header */}
-        <div className="p-5 border-b border-slate-700/40 flex items-center justify-between bg-[#1e293b]">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 bg-red-650 rounded flex items-center justify-center font-black text-white">K</div>
-            <div>
-              <h1 className="text-sm font-extrabold text-slate-100 tracking-tight font-display uppercase">K-Law Intelligence</h1>
-              <p className="text-[10px] text-slate-500 font-mono tracking-wider">법령 및 판례 도우미</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="md:hidden p-1.5 bg-[#0f172a] border border-slate-700 hover:text-slate-100 rounded-full"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Action: Create New Consulting room */}
-        <div className="p-4 bg-[#1e293b]">
-          <button
-            onClick={createNewSession}
-            className="w-full py-2.5 px-4 bg-red-650/10 hover:bg-red-650/20 border border-red-650/30 text-red-500 rounded-xl flex items-center justify-center gap-2.5 text-xs font-semibold tracking-tight transition-all active:scale-[0.98]"
-          >
-            <Plus className="h-4 w-4" />
-            새로운 상담 시작하기
-          </button>
-        </div>
-/div>
       </div>
 
       {/* SIDEBAR CONTAINER (DESKTOP & MOBILE SIDE DRAWER) */}
