@@ -1,0 +1,6 @@
+{
+  "name": "국가법령 Q&A",
+  "description": "국가법령정보센터의 법령, 판례, 행정규칙 데이터를 활용하고, 지능형 Gemini AI를 기반으로 신뢰할 수 있는 대화형 법률 정보 및 해석을 제공하는 법률 비서 서비스입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
